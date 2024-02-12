@@ -283,7 +283,15 @@ impl WithoutPeerId {
     /// Specify a single address to dial the unknown peer.
     pub fn address(self, address: Multiaddr) -> WithoutPeerIdWithAddress {
         WithoutPeerIdWithAddress {
-            address,
+            addresses: vec![address],
+            role_override: Endpoint::Dialer,
+        }
+    }
+
+    /// Specify a set of addresses to be used to dial the unknown peer.
+    pub fn addresses(self, addresses: Vec<Multiaddr>) -> WithoutPeerIdWithAddress {
+        WithoutPeerIdWithAddress {
+            addresses,
             role_override: Endpoint::Dialer,
             port_use: PortUse::Reuse,
         }
@@ -292,7 +300,7 @@ impl WithoutPeerId {
 
 #[derive(Debug)]
 pub struct WithoutPeerIdWithAddress {
-    address: Multiaddr,
+    addresses: Vec<Multiaddr>,
     role_override: Endpoint,
     port_use: PortUse,
 }
@@ -306,7 +314,7 @@ impl WithoutPeerIdWithAddress {
         DialOpts {
             peer_id: None,
             condition: PeerCondition::Always,
-            addresses: vec![self.address],
+            addresses: self.addresses,
             extend_addresses_through_behaviour: false,
             role_override: self.role_override,
             dial_concurrency_factor_override: None,
