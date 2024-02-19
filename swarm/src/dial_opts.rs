@@ -224,6 +224,11 @@ impl WithPeerId {
             port_use: self.port_use,
         }
     }
+
+    /// Get the [`PeerId`] of this dial attempt.
+    pub fn peer_id(&self) -> PeerId {
+        self.peer_id
+    }
 }
 
 #[derive(Debug)]

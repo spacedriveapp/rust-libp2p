@@ -11,17 +11,14 @@ use libp2p_swarm::{
     self as swarm, dial_opts::DialOpts, ConnectionDenied, ConnectionId, FromSwarm,
     NetworkBehaviour, THandler, THandlerInEvent, THandlerOutEvent, ToSwarm,
 };
-use swarm::{
-    behaviour::ConnectionEstablished, dial_opts::PeerCondition, ConnectionClosed, DialError,
-    DialFailure,
-};
+use swarm::{behaviour::ConnectionEstablished, ConnectionClosed, DialError, DialFailure};
 
 use crate::{handler::Handler, shared::Shared, Control};
 
 /// A generic behaviour for stream-oriented protocols.
 pub struct Behaviour {
     shared: Arc<Mutex<Shared>>,
-    dial_receiver: mpsc::Receiver<PeerId>,
+    dial_receiver: mpsc::Receiver<DialOpts>,
 }
 
 impl Default for Behaviour {
@@ -131,12 +128,8 @@ impl NetworkBehaviour for Behaviour {
         &mut self,
         cx: &mut Context<'_>,
     ) -> Poll<ToSwarm<Self::ToSwarm, THandlerInEvent<Self>>> {
-        if let Poll::Ready(Some(peer)) = self.dial_receiver.poll_next_unpin(cx) {
-            return Poll::Ready(ToSwarm::Dial {
-                opts: DialOpts::peer_id(peer)
-                    .condition(PeerCondition::DisconnectedAndNotDialing)
-                    .build(),
-            });
+        if let Poll::Ready(Some(opts)) = self.dial_receiver.poll_next_unpin(cx) {
+            return Poll::Ready(ToSwarm::Dial { opts });
         }
 
         Poll::Pending

@@ -6,7 +6,7 @@ use std::{
 
 use futures::channel::mpsc;
 use libp2p_identity::PeerId;
-use libp2p_swarm::{ConnectionId, Stream, StreamProtocol};
+use libp2p_swarm::{dial_opts::DialOpts, ConnectionId, Stream, StreamProtocol};
 use rand::seq::IteratorRandom as _;
 
 use crate::{handler::NewStream, AlreadyRegistered, IncomingStreams};
@@ -26,7 +26,7 @@ pub(crate) struct Shared {
     /// Sender for peers we want to dial.
     ///
     /// We manage this through a channel to avoid locks as part of [`NetworkBehaviour::poll`](libp2p_swarm::NetworkBehaviour::poll).
-    dial_sender: mpsc::Sender<PeerId>,
+    dial_sender: mpsc::Sender<DialOpts>,
 }
 
 impl Shared {
@@ -36,7 +36,7 @@ impl Shared {
 }
 
 impl Shared {
-    pub(crate) fn new(dial_sender: mpsc::Sender<PeerId>) -> Self {
+    pub(crate) fn new(dial_sender: mpsc::Sender<DialOpts>) -> Self {
         Self {
             dial_sender,
             connections: Default::default(),
@@ -116,7 +116,7 @@ impl Shared {
         }
     }
 
-    pub(crate) fn sender(&mut self, peer: PeerId) -> mpsc::Sender<NewStream> {
+    pub(crate) fn sender(&mut self, peer: PeerId, opts: DialOpts) -> mpsc::Sender<NewStream> {
         let maybe_sender = self
             .connections
             .iter()
@@ -138,7 +138,7 @@ impl Shared {
                     .entry(peer)
                     .or_insert_with(|| mpsc::channel(0));
 
-                let _ = self.dial_sender.try_send(peer);
+                let _ = self.dial_sender.try_send(opts);
 
                 sender.clone()
             }
