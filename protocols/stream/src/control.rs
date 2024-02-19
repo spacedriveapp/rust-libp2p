@@ -13,9 +13,10 @@ use futures::{
     channel::{mpsc, oneshot},
     SinkExt as _, StreamExt as _,
 };
+use libp2p_core::Multiaddr;
 use libp2p_identity::PeerId;
 use libp2p_swarm::{
-    dial_opts::{DialOpts, PeerCondition, WithPeerId},
+    dial_opts::{DialOpts, PeerCondition},
     Stream, StreamProtocol,
 };
 
@@ -82,18 +83,21 @@ impl Control {
     /// A single control will always open one stream at a time which is enforced by requiring `&mut self`.
     ///
     /// This backpressure mechanism breaks if you clone [`Control`]s excessively.
-    pub async fn open_stream_with_opts(
+    pub async fn open_stream_with_addrs(
         &mut self,
-        opts: WithPeerId,
+        peer: PeerId,
         protocol: StreamProtocol,
+        addresses: Vec<Multiaddr>,
     ) -> Result<Stream, OpenStreamError> {
-        let opts = opts.build();
-        let peer = opts
-            .get_peer_id()
-            .expect("We take in `WithPeerId` so it's gonna be set");
         tracing::debug!(%peer, "Requesting new stream");
 
-        let mut new_stream_sender = Shared::lock(&self.shared).sender(peer, opts);
+        let mut new_stream_sender = Shared::lock(&self.shared).sender(
+            peer,
+            DialOpts::peer_id(peer)
+                .condition(PeerCondition::DisconnectedAndNotDialing)
+                .addresses(addresses)
+                .build(),
+        );
 
         let (sender, receiver) = oneshot::channel();
 
