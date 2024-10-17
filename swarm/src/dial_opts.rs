@@ -290,6 +290,7 @@ impl WithoutPeerId {
         WithoutPeerIdWithAddress {
             addresses: vec![address],
             role_override: Endpoint::Dialer,
+            port_use: PortUse::Reuse,
         }
     }
 
